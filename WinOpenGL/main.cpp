@@ -1,20 +1,32 @@
 #include <windows.h>                              // Header File For Windows
+
 #include <gl.h>                                // Header File For The OpenGL32 Library
 #include <glu.h>                               // Header File For The GLu32 Library
 #include <glaux.h>                             // Header File For The GLaux Library
 
-HGLRC           hRC = NULL;                           // Permanent Rendering Context
-HDC             hDC = NULL;                           // Private GDI Device Context
-HWND            hWnd = NULL;                          // Holds Our Window Handle
-HINSTANCE       hInstance;                          // Holds The Instance Of The Application
+HGLRC           hRC = NULL;			// Permanent Rendering Context. 모든 OpenGL 프로그램은 Rendering Context(RC)에 연결(Link)되어 있다.
+// RC는 OpenGL이 Device Context를 호출하기위한 링크이다.
+HDC             hDC = NULL;				// Private GDI Device Context(DC). 프로그램이 Window창에 그림을 그리기 위해 꼭 생성해야한다.
+// DC는 Window창을 GDI(Graphic Device Interface)에 연결한다.
+HWND            hWnd = NULL;				// Holds Our Window Handle. 윈도우 자체를 위한 핸들. 2개이상 존재할 수 있다.(여러개의 창을 사용하는 프로그램의 경우)
+HINSTANCE       hInstance;						// Holds The Instance Of The Application. 프로그램 코드를 담고 있는 모듈에 대한 핸들.
+// 프로그램 코드 덩어리를 윈도우에서 관리하기 위해서 부여한 고유 식별 번호.
+// http://terapi.tistory.com/entry/HWND%EC%99%80-HINSTANCE%EC%9D%98-%EC%B0%A8%EC%9D%B4-API 참조.
 
-bool    keys[256];                              // Array Used For The Keyboard Routine
-bool    active = TRUE;                                // Window Active Flag Set To TRUE By Default
-bool    fullscreen = TRUE;                            // Fullscreen Flag Set To Fullscreen Mode By Default
+bool    keys[256];						// Array Used For The Keyboard Routine
+bool    active = TRUE;						// Window Active Flag Set To TRUE By Default. 윈도우가 최소화된 경우 FALSE
+bool    fullscreen = TRUE;						// Fullscreen Flag. TRUE - Full Screen, FALSE - Window Mode
+// 그래픽카드에따라 지원여부가 갈린다.
 
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);               // Declaration For WndProc
+const int windowWidth = 1920;	// Window 창 크기
+const int windowHeight = 1080;
 
-GLvoid ReSizeGLScene(GLsizei width, GLsizei height)             // Resize And Initialize The GL Window
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);		// Declaration For WndProc. 윈도우 메시지 콜백함수.
+// ** CreateGLWindow() 함수에서 사용하기 위해서 선언하였다.
+
+
+
+GLvoid ReSizeGLScene(GLsizei width, GLsizei height)         // 윈도우 크기가 변경되면 변경된 크기에 맞춰 GL Window를 초기화
 {
 	if (height == 0)                              // Prevent A Divide By Zero By
 	{
@@ -28,7 +40,7 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)             // Resize And In
 	// Calculate The Aspect Ratio Of The Window
 	gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
 
-	glMatrixMode(GL_MODELVIEW);                     // Select The Modelview Matrix
+	glMatrixMode(GL_MODELVIEW);                 // Select The Modelview Matrix
 	glLoadIdentity();                           // Reset The Modelview Matrix
 }
 
@@ -38,8 +50,13 @@ int InitGL(GLvoid)                              // All Setup For OpenGL Goes Her
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);                   // Black Background
 	glClearDepth(1.0f);                         // Depth Buffer Setup
 	glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
-	glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Test To Do
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);          // Really Nice Perspective Calculations
+	glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Test To Do(Less or Equal)
+	// 들어온 depth value가 depth buffer에 있는 값보다 작거나 같으면(거리가 멀거나 같으면) 통과(화면에 출력)
+
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
+	// 어떠한 연산을 할 때 드라이버에게 주는 언질 같은 것.
+	// 강제하는 것이 아니기 때문에 드라이버가 무시할 수도 있다.
+	// http://alleysark.tistory.com/225
 	return TRUE;                                // Initialization Went OK
 }
 
@@ -47,6 +64,7 @@ int DrawGLScene(GLvoid)                             // Here's Where We Do All Th
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);         // Clear The Screen And The Depth Buffer
 	glLoadIdentity();                           // Reset The Current Modelview Matrix
+	/* OpenGL 그리기 코드를 작성 */
 	return TRUE;                                // Everything Went OK
 }
 
@@ -118,6 +136,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	wc.lpszMenuName = NULL;                     // We Don't Want A Menu
 	wc.lpszClassName = "OpenGL";                 // Set The Class Name
 
+	// 윈도우클래스 등록
 	if (!RegisterClass(&wc))                        // Attempt To Register The Window Class
 	{
 		MessageBox(NULL, "Failed To Register The Window Class.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
@@ -239,7 +258,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		return FALSE;                           // Return FALSE
 	}
 
-	ShowWindow(hWnd, SW_SHOW);                       // Show The Window
+	ShowWindow(hWnd, SW_MAXIMIZE);                       // Show The Window
 	SetForegroundWindow(hWnd);                      // Slightly Higher Priority
 	SetFocus(hWnd);                             // Sets Keyboard Focus To The Window
 	ReSizeGLScene(width, height);                       // Set Up Our Perspective GL Screen
@@ -253,7 +272,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 
 	return TRUE;                                // Success
 }
-
+// 윈도우 메시지 콜백함수
 LRESULT CALLBACK WndProc(HWND    hWnd,                   // Handle For This Window
 	UINT    uMsg,                   // Message For This Window
 	WPARAM  wParam,                 // Additional Message Information
@@ -314,23 +333,24 @@ LRESULT CALLBACK WndProc(HWND    hWnd,                   // Handle For This Wind
 	// Pass All Unhandled Messages To DefWindowProc
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
-
+// Win32 프로젝트 Main 함수
 int WINAPI WinMain(HINSTANCE   hInstance,              // Instance
 	HINSTANCE   hPrevInstance,              // Previous Instance
 	LPSTR       lpCmdLine,              // Command Line Parameters
 	int     nCmdShow)               // Window Show State
 {
 	MSG msg;                                // Windows Message Structure
-	BOOL    done = FALSE;                         // Bool Variable To Exit Loop
+	BOOL done = FALSE;                         // Bool Variable To Exit Loop
 
 	// Ask The User Which Screen Mode They Prefer
-	if (MessageBox(NULL, "Would You Like To Run In Fullscreen Mode?", "Start FullScreen?", MB_YESNO | MB_ICONQUESTION) == IDNO)
-	{
-		fullscreen = FALSE;                       // Windowed Mode
-	}
+	// 	if (MessageBox(NULL, "Would You Like To Run In Fullscreen Mode?", "Start FullScreen?", MB_YESNO | MB_ICONQUESTION) == IDNO)
+	// 	{
+	// 		fullscreen = FALSE;                       // Windowed Mode
+	// 	}
+	fullscreen = FALSE; // 윈도우모드로 고정.
 
 	// Create Our OpenGL Window
-	if (!CreateGLWindow("NeHe's OpenGL Framework", 640, 480, 16, fullscreen))
+	if (!CreateGLWindow("NeHe's OpenGL Framework", windowWidth, windowHeight, 16, fullscreen))
 	{
 		return 0;                           // Quit If Window Was Not Created
 	}
@@ -374,7 +394,7 @@ int WINAPI WinMain(HINSTANCE   hInstance,              // Instance
 				KillGLWindow();                 // Kill Our Current Window
 				fullscreen = !fullscreen;             // Toggle Fullscreen / Windowed Mode
 				// Recreate Our OpenGL Window
-				if (!CreateGLWindow("NeHe's OpenGL Framework", 640, 480, 16, fullscreen))
+				if (!CreateGLWindow("NeHe's OpenGL Framework", windowWidth, windowHeight, 16, fullscreen))
 				{
 					return 0;               // Quit If Window Was Not Created
 				}
